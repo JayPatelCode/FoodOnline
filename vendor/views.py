@@ -14,7 +14,7 @@ from .models import Vendor
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from accounts.views import check_role_vendor
-# from .utils import get_vendor
+from .utils import get_vendor
 from django.template.defaultfilters import slugify
 # from orders.models import Order, OrderedFood
 
@@ -52,7 +52,7 @@ def vprofile(request):
 @login_required(login_url='login')
 @user_passes_test(check_role_vendor)
 def menu_builder(request):
-    vendor = get_object_or_404(Vendor, user=request.user)
+    vendor = get_vendor(request)
     categories = Category.objects.filter(vendor=vendor).order_by('created_at')
     context = {
         'categories': categories,
@@ -81,8 +81,7 @@ def add_category(request):
         if form.is_valid():
             category_name = form.cleaned_data['category_name']
             category = form.save(commit=False)
-            vendor = get_object_or_404(Vendor, user=request.user)
-            category.vendor = vendor
+            category.vendor = get_vendor(request)
             
             category.save() # when the category object is saved the the category id will be generated
             category.slug = slugify(category_name)+'-'+str(category.id) #chicken-15 first is name second is category id
@@ -108,8 +107,7 @@ def edit_category(request, pk=None):
         if form.is_valid():
             category_name = form.cleaned_data['category_name']
             category = form.save(commit=False)
-            vendor = get_object_or_404(Vendor, user=request.user)
-            category.vendor = vendor
+            category.vendor = get_vendor(request)
             category.slug = slugify(category_name)
             form.save()
             messages.success(request, 'Category updated successfully!')
@@ -137,13 +135,12 @@ def delete_category(request, pk=None):
 @login_required(login_url='login')
 @user_passes_test(check_role_vendor)
 def add_food(request):
-    vendor = get_object_or_404(Vendor, user=request.user)
     if request.method == 'POST':
         form = FoodItemForm(request.POST, request.FILES)
         if form.is_valid():
             foodtitle = form.cleaned_data['food_title']
             food = form.save(commit=False)
-            food.vendor = vendor
+            food.vendor = get_vendor(request)
             food.slug = slugify(foodtitle)
             form.save()
             messages.success(request, 'Food Item added successfully!')
@@ -153,7 +150,7 @@ def add_food(request):
     else:
         form = FoodItemForm()
         # to display categories which belongs to logged in user
-        form.fields['category'].queryset = Category.objects.filter(vendor=vendor)
+        form.fields['category'].queryset = Category.objects.filter(vendor=get_vendor(request))
     context = {
         'form': form,
     }
@@ -163,14 +160,13 @@ def add_food(request):
 @login_required(login_url='login')
 @user_passes_test(check_role_vendor)
 def edit_food(request, pk=None):
-    vendor = get_object_or_404(Vendor, user=request.user)
     food = get_object_or_404(FoodItem, pk=pk)
     if request.method == 'POST':
         form = FoodItemForm(request.POST, request.FILES, instance=food)
         if form.is_valid():
             foodtitle = form.cleaned_data['food_title']
             food = form.save(commit=False)
-            food.vendor = vendor
+            food.vendor = get_vendor(request)
             food.slug = slugify(foodtitle)
             form.save()
             messages.success(request, 'Food Item updated successfully!')
@@ -180,7 +176,7 @@ def edit_food(request, pk=None):
     else:
         form = FoodItemForm(instance=food)
         # to display categories which belongs to logged in user
-        form.fields['category'].queryset = Category.objects.filter(vendor=vendor)
+        form.fields['category'].queryset = Category.objects.filter(vendor=get_vendor(request))
     context = {
         'form': form,
         'food': food,
